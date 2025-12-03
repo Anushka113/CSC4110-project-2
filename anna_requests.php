@@ -3,7 +3,6 @@ require_once 'db.php';
 
 $message = "";
 
-// Handle reject action (simple for now)
 if (isset($_GET['action'], $_GET['request_id']) && $_GET['action'] === 'reject') {
     $req_id = intval($_GET['request_id']);
     if ($req_id > 0) {
@@ -18,7 +17,6 @@ if (isset($_GET['action'], $_GET['request_id']) && $_GET['action'] === 'reject')
     }
 }
 
-// Load all pending requests
 $sql = "
     SELECT sr.request_id, sr.service_address, sr.cleaning_type, sr.num_rooms,
            sr.preferred_datetime, sr.proposed_budget, sr.notes,
@@ -33,22 +31,57 @@ $result = $conn->query($sql);
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Anna - Pending Service Requests</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 30px auto; }
-        h1 { margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
-        th { background-color: #f0f0f0; }
-        .message { margin-top: 10px; padding: 8px; border-radius: 4px; background: #e0ffe0; border: 1px solid #5cb85c; }
-        a { color: #007bff; text-decoration: none; }
-        a.btn { padding: 4px 8px; border: 1px solid #007bff; border-radius: 4px; margin-right: 5px; }
-    </style>
+<meta charset="UTF-8">
+<title>Anna - Pending Requests</title>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7fb; margin: 0; }
+    header { background: #4a90e2; color: #fff; padding: 18px 30px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
+    header h1 { margin: 0; font-size: 24px; }
+    .container {
+        max-width: 1000px;
+        margin: 30px auto;
+        background: #fff;
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    a.back { text-decoration: none; color: #4a90e2; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #d0e6ff; padding: 8px 10px; text-align: left; }
+    th { background: #bee3ff; }
+    tr:nth-child(even) td { background: #f9fcff; }
+    tr:hover td { background: #eef7ff; }
+    .message {
+        margin-top: 10px; padding: 8px 10px;
+        border-radius: 6px; background: #e0ffe0;
+        border: 1px solid #5cb85c; color: #2f6b2f;
+    }
+    .btn {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 5px;
+        border: 1px solid #4a90e2;
+        text-decoration: none;
+        color: #4a90e2;
+        font-size: 13px;
+        background: #fff;
+        margin-right: 5px;
+    }
+    .btn:hover { background: #e7f2ff; }
+    .btn-danger {
+        border-color: #d9534f;
+        color: #d9534f;
+    }
+    .btn-danger:hover { background: #ffe0e0; }
+</style>
 </head>
 <body>
+<header>
     <h1>Anna - Pending Service Requests</h1>
-    <p><a href="index.php">&larr; Back to Home</a></p>
+</header>
+
+<div class="container">
+    <p><a class="back" href="index.php">&larr; Back to Home</a></p>
 
     <?php if ($message): ?>
         <div class="message"><?php echo htmlspecialchars($message); ?></div>
@@ -77,16 +110,17 @@ $result = $conn->query($sql);
                         Budget: <?php echo $row['proposed_budget']; ?><br>
                         Notes: <?php echo nl2br(htmlspecialchars($row['notes'])); ?>
                     </td>
-<td>
-    <a class="btn" href="quote_anna.php?request_id=<?php echo $row['request_id']; ?>">Send Quote</a>
-    <a class="btn" href="?action=reject&request_id=<?php echo $row['request_id']; ?>"
-       onclick="return confirm('Reject this request?');">Reject</a>
-</td>
+                    <td>
+                        <a class="btn" href="quote_anna.php?request_id=<?php echo $row['request_id']; ?>">Send Quote</a>
+                        <a class="btn btn-danger" href="?action=reject&request_id=<?php echo $row['request_id']; ?>"
+                           onclick="return confirm('Reject this request?');">Reject</a>
+                    </td>
                 </tr>
             <?php endwhile; ?>
         </table>
     <?php else: ?>
         <p>No pending requests.</p>
     <?php endif; ?>
+</div>
 </body>
 </html>
