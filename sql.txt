@@ -1,0 +1,63 @@
+-- 3) Frequent clients – List the clients who completed the most service orders.
+SELECT c.client_id, c.first_name, c.last_name, COUNT(o.order_id) AS completed_orders
+FROM Client c
+JOIN `Order` o ON c.client_id = o.client_id
+WHERE o.status = 'completed'
+GROUP BY c.client_id, c.first_name, c.last_name
+ORDER BY completed_orders DESC;
+-- 4) Uncommitted clients – submitted 3 or more requests but never completed an order.
+SELECT c.client_id, c.first_name, c.last_name,
+       COUNT(sr.request_id) AS request_count
+FROM Client c
+JOIN ServiceRequest sr ON c.client_id = sr.client_id
+LEFT JOIN `Order` o 
+       ON sr.request_id = o.request_id 
+      AND o.status = 'completed'
+GROUP BY c.client_id, c.first_name, c.last_name
+HAVING COUNT(sr.request_id) >= 3
+   AND SUM(CASE WHEN o.order_id IS NOT NULL THEN 1 ELSE 0 END) = 0;
+-- 5) This month’s accepted quotes – all quotes agreed upon in December 2024.
+SELECT q.quote_id, q.request_id, q.created_at, q.status
+FROM Quote q
+WHERE q.status = 'accepted'
+  AND YEAR(q.created_at) = 2024
+  AND MONTH(q.created_at) = 12;
+-- 6) Prospective clients – registered but never submitted any request.
+SELECT c.client_id, c.first_name, c.last_name, c.email
+FROM Client c
+LEFT JOIN ServiceRequest sr ON c.client_id = sr.client_id
+WHERE sr.request_id IS NULL;
+-- 7) Largest job – service requests with the largest number of rooms ever completed.
+SELECT sr.request_id, sr.num_rooms, o.order_id
+FROM ServiceRequest sr
+JOIN `Order` o ON sr.request_id = o.request_id
+WHERE o.status = 'completed'
+ORDER BY sr.num_rooms DESC
+LIMIT 1;
+-- 8) Overdue bills – unpaid bills older than one week.
+SELECT b.bill_id, b.order_id, b.amount, b.generated_at
+FROM Bill b
+WHERE b.status = 'unpaid'
+  AND b.generated_at < (NOW() - INTERVAL 7 DAY);
+-- 9) Bad clients – clients who never paid any overdue bill.
+SELECT DISTINCT c.client_id, c.first_name, c.last_name
+FROM Client c
+JOIN `Order` o ON c.client_id = o.client_id
+JOIN Bill b ON o.order_id = b.order_id
+WHERE b.generated_at < (NOW() - INTERVAL 7 DAY)
+  AND b.status != 'paid';
+-- 10) Good clients – always paid their bills within 24 hours of being generated.
+SELECT c.client_id, c.first_name, c.last_name
+FROM Client c
+JOIN `Order` o ON c.client_id = o.client_id
+JOIN Bill b ON o.order_id = b.order_id
+JOIN Payment p ON b.bill_id = p.bill_id
+GROUP BY c.client_id, c.first_name, c.last_name
+HAVING SUM(
+         CASE 
+           WHEN b.status = 'paid'
+            AND TIMESTAMPDIFF(HOUR, b.generated_at, p.paid_at) <= 24
+           THEN 0 
+           ELSE 1
+         END
+       ) = 0;
