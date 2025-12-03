@@ -40,7 +40,7 @@ require_once 'db.php';
     <h2>Navigation</h2>
     <nav>
         <a href="register.php">Client Registration</a>
-        <a href="#">Submit Service Request (coming soon)</a>
+        <a href="new_request.php">Submit Service Request</a>
         <a href="#">Anna Dashboard (coming soon)</a>
     </nav>
 </section>
