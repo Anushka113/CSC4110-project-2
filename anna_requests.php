@@ -77,11 +77,11 @@ $result = $conn->query($sql);
                         Budget: <?php echo $row['proposed_budget']; ?><br>
                         Notes: <?php echo nl2br(htmlspecialchars($row['notes'])); ?>
                     </td>
-                    <td>
-                        <!-- Quote feature will come later -->
-                        <a class="btn" href="?action=reject&request_id=<?php echo $row['request_id']; ?>"
-                           onclick="return confirm('Reject this request?');">Reject</a>
-                    </td>
+<td>
+    <a class="btn" href="quote_anna.php?request_id=<?php echo $row['request_id']; ?>">Send Quote</a>
+    <a class="btn" href="?action=reject&request_id=<?php echo $row['request_id']; ?>"
+       onclick="return confirm('Reject this request?');">Reject</a>
+</td>
                 </tr>
             <?php endwhile; ?>
         </table>

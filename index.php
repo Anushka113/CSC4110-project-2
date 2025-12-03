@@ -41,6 +41,7 @@ require_once 'db.php';
     <nav>
         <a href="register.php">Client Registration</a>
         <a href="new_request.php">Submit Service Request</a>
+        <a href="client_quotes.php">Client - View Quotes</a>
         <a href="anna_requests.php">Anna - View Pending Requests</a>
     </nav>
 </section>
