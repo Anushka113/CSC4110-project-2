@@ -45,6 +45,8 @@ require_once 'db.php';
         <a href="anna_requests.php">Anna - View Pending Requests</a>
         <a href="anna_orders.php">Anna - Orders</a>
         <a href="client_bills.php">Client - Bills</a>
+        <a href="dashboard_anna.php">Anna Dashboard</a>
+
     </nav>
 </section>
 </body>
