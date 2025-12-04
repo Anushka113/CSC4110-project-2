@@ -1,6 +1,13 @@
 <?php
+session_start();
+if (!isset($_SESSION['client_id'])) {
+    header("Location: home.php");
+    exit;
+}
 require_once 'db.php';
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,8 +106,18 @@ require_once 'db.php';
 </head>
 <body>
 <header>
-    <h1>Anna Johnson Home Cleaning Service</h1>
-    <p>CSC4110 Project 2 • Database-Driven Web App</p>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h1>Anna Johnson Home Cleaning Service</h1>
+            <p>CSC4110 Project 2</p>
+        </div>
+
+        <div style="text-align:right; font-size:13px;">
+            Logged in as 
+            <strong><?php echo htmlspecialchars($_SESSION['client_name']); ?></strong><br>
+            <a href="logout.php" style="color:#fff; text-decoration:underline;">Logout</a>
+        </div>
+    </div>
 </header>
 
 <div class="container">
