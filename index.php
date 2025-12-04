@@ -154,6 +154,13 @@ require_once 'db.php';
                 <p>See frequent/uncommitted clients, overdue bills, largest jobs, and more.</p>
                 <a class="btn-link" href="dashboard_anna.php">Open Dashboard</a>
             </div>
+
+            <div class="nav-card">
+    <h3>Anna: Billing (Disputes)</h3>
+    <p>Review disputed bills, adjust amounts, and respond to clients.</p>
+    <a class="btn-link" href="anna_billing.php">Manage Disputed Bills</a>
+</div>
+
         </div>
     </section>
 </div>

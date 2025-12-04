@@ -5,6 +5,7 @@ $client_id = intval($_GET['client_id'] ?? 0);
 $success = "";
 $error = "";
 
+// Accept quote -> creates order
 if (isset($_GET['action'], $_GET['quote_id'], $_GET['request_id'], $_GET['client_id']) 
     && $_GET['action'] === 'accept') {
 
@@ -37,18 +38,52 @@ if (isset($_GET['action'], $_GET['quote_id'], $_GET['request_id'], $_GET['client
     }
 }
 
+// Client sends counter note (negotiation)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['counter_quote_id'])) {
+    $quote_id = intval($_POST['counter_quote_id']);
+    $client_id = intval($_POST['client_id']);
+    $note = trim($_POST['counter_note'] ?? '');
+
+    if ($quote_id <= 0 || $client_id <= 0) {
+        $error = "Invalid quote or client ID.";
+    } elseif ($note === '') {
+        $error = "Please type your message.";
+    } else {
+        $stmtM = $conn->prepare("
+            INSERT INTO QuoteMessage (quote_id, sender_type, adjusted_price, scheduled_time_window, note)
+            VALUES (?, 'client', NULL, NULL, ?)
+        ");
+        $stmtM->bind_param("is", $quote_id, $note);
+        if ($stmtM->execute()) {
+            $stmtM->close();
+
+            // Mark quote as counter from client (so Anna knows)
+            $stmtU = $conn->prepare("UPDATE Quote SET status = 'counter-from-client' WHERE quote_id = ?");
+            $stmtU->bind_param("i", $quote_id);
+            $stmtU->execute();
+            $stmtU->close();
+
+            $success = "Your message has been sent to Anna for this quote.";
+        } else {
+            $error = "Error sending message: " . $conn->error;
+        }
+    }
+}
+
+// Load quotes for this client
 $quotes = [];
 if ($client_id > 0) {
     $stmt = $conn->prepare("
         SELECT q.quote_id, q.request_id, q.status, q.created_at,
                sr.service_address, sr.cleaning_type, sr.num_rooms,
                sr.preferred_datetime,
-               qm.adjusted_price, qm.scheduled_time_window, qm.note
+               qm.adjusted_price, qm.scheduled_time_window, qm.note AS anna_note
         FROM Quote q
         JOIN ServiceRequest sr ON q.request_id = sr.request_id
-        JOIN QuoteMessage qm ON q.quote_id = qm.quote_id
+        JOIN QuoteMessage qm 
+          ON q.quote_id = qm.quote_id 
+         AND qm.sender_type = 'anna'
         WHERE sr.client_id = ?
-          AND qm.sender_type = 'anna'
         ORDER BY q.created_at DESC
     ");
     $stmt->bind_param("i", $client_id);
@@ -125,6 +160,28 @@ if ($client_id > 0) {
         border: 1px solid #c3d7f2;
         margin-left: 5px;
     }
+    .conversation {
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #d0e6ff;
+        padding: 8px 10px;
+        margin-top: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: 13px;
+    }
+    .msg-anna { color: #1f3a93; }
+    .msg-client { color: #b33a3a; }
+    .msg-meta { font-size: 11px; color: #777; }
+    textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid #c3d7f2;
+        margin-top: 5px;
+        box-sizing: border-box;
+    }
 </style>
 </head>
 <body>
@@ -161,17 +218,60 @@ if ($client_id > 0) {
             <small>Request #<?php echo $q['request_id']; ?> • Address: <?php echo htmlspecialchars($q['service_address']); ?></small><br>
             Type: <?php echo htmlspecialchars($q['cleaning_type']); ?> • Rooms: <?php echo $q['num_rooms']; ?><br>
             Preferred: <?php echo $q['preferred_datetime']; ?><br><br>
-            <strong>Price:</strong> $<?php echo $q['adjusted_price']; ?> <br>
-            <strong>Time window:</strong> <?php echo htmlspecialchars($q['scheduled_time_window']); ?><br>
-            <strong>Note from Anna:</strong> <?php echo nl2br(htmlspecialchars($q['note'])); ?><br><br>
 
-            <?php if ($q['status'] === 'pending-client'): ?>
+            <strong>Offer from Anna:</strong><br>
+            Price: $<?php echo $q['adjusted_price']; ?><br>
+            Time window: <?php echo htmlspecialchars($q['scheduled_time_window']); ?><br>
+            Note: <?php echo nl2br(htmlspecialchars($q['anna_note'])); ?><br>
+
+            <div class="conversation">
+                <strong>Conversation:</strong><br>
+                <?php
+                $stmtC = $conn->prepare("
+                    SELECT sender_type, adjusted_price, scheduled_time_window, note, created_at
+                    FROM QuoteMessage
+                    WHERE quote_id = ?
+                    ORDER BY created_at ASC
+                ");
+                $stmtC->bind_param("i", $q['quote_id']);
+                $stmtC->execute();
+                $resC = $stmtC->get_result();
+                if ($resC->num_rows === 0) {
+                    echo "<em>No messages yet.</em>";
+                } else {
+                    while ($m = $resC->fetch_assoc()) {
+                        $cls = $m['sender_type'] === 'anna' ? 'msg-anna' : 'msg-client';
+                        echo "<div class='{$cls}'>[" . htmlspecialchars($m['sender_type']) . "]";
+                        if ($m['adjusted_price'] !== null) {
+                            echo " Price: $" . $m['adjusted_price'];
+                        }
+                        if ($m['scheduled_time_window'] !== null && $m['scheduled_time_window'] !== '') {
+                            echo " • Time: " . htmlspecialchars($m['scheduled_time_window']);
+                        }
+                        echo "<br>" . nl2br(htmlspecialchars($m['note']))
+                           . "<br><span class='msg-meta'>at {$m['created_at']}</span></div><hr>";
+                    }
+                }
+                $stmtC->close();
+                ?>
+            </div>
+
+            <?php if ($q['status'] !== 'accepted'): ?>
+                <br>
                 <a class="btn-link" href="client_quotes.php?action=accept&client_id=<?php echo $client_id; ?>&quote_id=<?php echo $q['quote_id']; ?>&request_id=<?php echo $q['request_id']; ?>"
                    onclick="return confirm('Accept this quote and create an order?');">
                     Accept Quote
                 </a>
+
+                <form method="post" action="client_quotes.php?client_id=<?php echo $client_id; ?>">
+                    <input type="hidden" name="counter_quote_id" value="<?php echo $q['quote_id']; ?>">
+                    <input type="hidden" name="client_id" value="<?php echo $client_id; ?>">
+                    <label>Send a message to Anna (e.g., "Too expensive", "Can you do morning instead?"):</label>
+                    <textarea name="counter_note" required></textarea>
+                    <button type="submit" class="btn">Send Message / Counter</button>
+                </form>
             <?php else: ?>
-                <em>Already <?php echo htmlspecialchars($q['status']); ?></em>
+                <p><em>This quote has already been accepted.</em></p>
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
