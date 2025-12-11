@@ -179,3 +179,27 @@ git status
 git add .
 git commit -m "Updated request handling and billing pages"
 git push
+
+Team Contributions
+
+This project was completed collaboratively for CSC 4110 – Software Engineering.
+
+Adam Vue
+
+Built the frontend pages (HTML, CSS, UI layout, and overall user-facing structure)
+
+Wrote the project documentation, including setup steps and feature descriptions
+
+Helped organize the project structure and ensure the interface was clear and easy to navigate
+
+Anushka
+
+Developed the backend logic using PHP + MySQL
+
+Implemented database connections, request handling, quoting and billing workflows
+
+Created the server-side functionality for both client and admin operations
+
+Together, we combined the frontend, backend, and documentation to create a complete Home Cleaning Service Management System.
+
+
